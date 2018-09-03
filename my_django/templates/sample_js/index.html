@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+{% load static %}
+<meta charset='utf-8' />
+<link href="{% static 'sample_js/fullcalendar.min.css' %}" rel='stylesheet' />
+<link href="{% static 'sample_js/fullcalendar.print.min.css' %}" rel='stylesheet' media='print' />
+<link href="{% static 'sample_js/css/jquery-ui.min.css' %}" rel='stylesheet' />
+<script src="{% static 'sample_js/lib/moment.min.js' %}"></script>
+<script src="{% static 'sample_js/lib/jquery.min.js' %}"></script>
+<script src="{% static 'sample_js/lib/jquery-ui.min.js' %}"></script>
+<script src="{% static 'sample_js/fullcalendar.min.js' %}"></script>
+<script src="{% static 'sample_js/locale-all.js' %}"></script>
+
+<script>
+
+
+$(function() {
+    $("#dialog-form").dialog({  // 表示するフォームは 'dialog-form' という ID で《定義》します。
+        autoOpen: false, // ダイアログをデフォルトで出力しない
+        height: 400,
+        width: 540,
+        modal: true,
+        buttons: {
+            "削除": function(event) {
+                var id = $("#id").val();
+                $.ajax({
+                type: 'get',
+                url: "/ajax/api_delete/",
+                data : {
+                  'delete_id': id,
+                },
+                'dataType':'json',
+                success : function(jsonResponse) {
+                  // 再描画
+                  $('#calendar').fullCalendar('refetchEvents');
+                  // 未
+                  // $('#calendar').fullCalendar('removeEvents');
+                  document.getElementById( "id" ).value = "";
+                  console.log("requested access complete");
+                }
+              });
+              $(this).dialog("close");
+                var subject = $("#subject").val();
+                $(this).dialog("close"); // ダイアログを閉じる
+            },
+            "保存": function() {
+              var id = $("#id").val();
+              var subject = $("#subject").val();
+              var all_day_flg = $("#all_day_flg").prop("checked");
+              var start_date = $("#start_date").val();
+              var end_date = $("#end_date").val();
+              var contents = $("#contents").val();
+              $.ajax({
+                type: 'get',
+                url: "/ajax/api/",
+                data : {
+                'id': id,
+                'subject': subject,
+                'end_flg': all_day_flg,
+                'start_date': start_date,
+                'end_date': end_date,
+                'contents': contents,
+                },
+                'dataType':'json',
+                success : function(jsonResponse) {
+                  // 再描画
+                  $('#calendar').fullCalendar('refetchEvents');
+                  // 未
+                  // $('#calendar').fullCalendar('removeEvents');
+                  document.getElementById( "id" ).value = "";
+                  console.log("requested access complete");
+                }
+              });
+              $(this).dialog("close");
+            },
+            "閉じる": function() {
+                $(this).dialog("close"); // ダイアログを閉じる
+                document.getElementById( "subject" ).value = "";
+                document.getElementById( "all_day_flg" ).value = false;
+                document.getElementById( "start_date" ).value = "";
+                document.getElementById( "end_date" ).value = "";
+                document.getElementById( "contents" ).value = "";
+            }
+        },
+    });
+    // 「開く」ボタンがクリックされたらダイアログを表示
+    $("#open").click(function() {
+        $("#dialog-form").dialog("open");
+        return false; // 画面遷移を防ぐ
+    });
+});
+
+var local_events = '/ajax/api/';
+
+$(document).ready(function() {
+  var initialLocaleCode = 'ja';
+  $('#calendar').fullCalendar({
+    header: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'month,agendaWeek,agendaDay,listWeek'
+    },
+    locale: 'ja',
+    defaultDate: '2018-08-20',
+    editable: true,
+    eventLimit: true,
+    timezone: 'Asia/Tokyo',
+    navLinks: true,
+    eventDurationEditable: true, // イベント期間をドラッグしで変更するかどうか
+    editable: true, // カレンダー上のイベントの変更許可
+    selectable: true, // 新規追加のドラックを強調
+    selectHelper: true, // プレースホルダを表示
+    timeFormat: 'H(:mm)',
+
+    // カレンダー表示(json)
+    events: local_events,
+
+    // ブランクマス 新規登録
+    select: (startDate, endDate) => {
+      document.getElementById( "subject" ).value = "タイトルを入力してください"
+
+      var startYmd = startDate;
+      var endYmd = endDate;
+
+      if (endYmd.diff(startYmd, 'days') >= 1) {
+          endYmd = endYmd.add(-1, "days");
+      } else {
+          endYmd = endDate;
+      };
+
+      document.getElementById( "start_date" ).value = startYmd.format("YYYY/MM/DD H:mm");
+      document.getElementById( "end_date" ).value = endYmd.format("YYYY/MM/DD H:mm");
+
+      if (startYmd.format("H:mm") == "0:00" & endYmd.format("H:mm") == "0:00"){
+          $('#all_day_flg').prop("checked", true); // 終日フラグ
+      } else {
+          $('#all_day_flg').prop("checked", false); //終日でなければフラグをつけない
+      };
+
+      $("#dialog-form").dialog("open");
+    },
+
+    // 予定をドラックで移動させる
+    eventDrop: function(event) {
+      var startYmd = event.start;
+      var endYmd = event.end;
+      if (startYmd){
+          var start_date = startYmd.format();
+      }
+
+      if (endYmd.diff(startYmd, 'days') >= 1){
+        endYmd = endYmd.add(-1, "days");
+      } else {
+        endYmd = event.end;
+      }
+
+      if (endYmd != startYmd){
+        var end_date = "〜" + endYmd.format();
+      } else {
+        var end_date = "";
+      }
+      alert(start_date + end_date +"にスケジュールが変更されました。");
+    },
+
+
+    // 予定クリック時のイベント
+    eventClick: function(event) {
+
+      document.getElementById( "id" ).value = event.id;
+      document.getElementById( "subject" ).value = event.title;
+      document.getElementById( "contents" ).value = event.description;
+      $('#all_day_flg').prop("checked", event.allDay);
+
+      var startYmd = event.start;
+      var endYmd = event.end;
+
+      if (event.end){
+        endYmd = endYmd;
+      }else{
+        endYmd = startYmd;
+      };
+
+      if (endYmd.diff(startYmd, "days") >= 1){
+        endYmd = endYmd.add(-1, "days");
+      } else {
+        endYmd = startYmd;
+      }
+
+      document.getElementById( "start_date" ).value = startYmd.format("YYYY/MM/DD H:mm");
+      document.getElementById( "end_date" ).value = endYmd.format("YYYY/MM/DD H:mm");
+
+      if (startYmd.format("H:mm") == "0:00" & endYmd.format("H:mm") == "0:00"){
+          $('#all_day_flg').prop("checked", true); // 終日フラグ
+      } else {
+          $('#all_day_flg').prop("checked", false); //終日でなければフラグをつけない
+      };
+
+      $("#dialog-form").dialog("open");
+      return false; // 画面遷移を防ぐ
+    },
+  });
+});
+
+
+</script>
+
+<style>
+
+table.sample {
+    border: 1px solid #FDFEFE;
+    border-collapse:collapse;
+    border-spacing:0;
+    empty-cells:show;
+    }
+
+.sample td {
+    border-top: solid 1px #8DB9DB;
+    border-left: solid 1px #8DB9DB;
+    border-right: solid 1px #8DB9DB;
+    border-bottom: solid 1px #8DB9DB;
+    padding: 0.3em 1em;
+    white-space: nowrap;
+    text-align: left;
+    }
+
+.sample td.header{
+    background-color: #E1EFFB;
+    color: #2E6E9E;
+    font-weight: bold;
+    }
+
+button.open{
+    color: #2E6E9E;
+    display: table;
+    width: 200px;
+    height: 50px;
+    margin:0 auto;
+}
+
+body {
+  margin: 40px 10px;
+  padding: 0;
+  font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+  font-size: 14px;
+}
+
+#calendar {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.fc-time{
+   display : none;
+}
+
+</style>
+</head>
+<body>
+
+<button id="open" class="open" style="" type="submit">日程を追加する</button>
+
+<div id='calendar'></div>
+
+<div id="dialog-form" title="日付追加">
+  <form>
+    <table id="form1" class="sample">
+      <input type="hidden" id="id" name="id" value="">
+      <tr>
+        <td class="header">件名</td>
+        <td><input type="text" id="subject" name="subject" value="タイトルを入力してください" size="50" maxlength="10"></td>
+      </tr>
+      <tr>
+        <td class="header">終日フラグ</td>
+        <td><input type="checkbox" id="all_day_flg" name="all_day_flg"></td>
+      </tr>
+      <tr>
+        <td class="header">開始日</td>
+        <td><input type="text" id="start_date" name="start_date" value="未設定" size="30" maxlength="50" /></td>
+      </tr>
+      <tr>
+        <td class="header">終了日</td>
+        <td><input type="text" id="end_date" name="end_date" value="未設定" size="30" maxlength="50"></td>
+      </tr>
+      <tr>
+        <td class="header">内容</td>
+        <td><textarea id="contents" name="contents" rows="8" cols="49" value=""></textarea></td>
+      </tr>
+    </table>
+  </form>
+</div>
+
+</body>
+</html>

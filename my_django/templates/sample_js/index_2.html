@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+{% load static %}
+<meta charset='utf-8' />
+  <link href="{% static 'sample_js/css/fullcalendar.min.css' %}" rel='stylesheet' />
+  <link href="{% static 'sample_js/css/fullcalendar.print.min.css' %}" rel='stylesheet' media='print' />
+  <script src="{% static 'sample_js/lib/moment.min.js' %}"></script>
+  <script src="{% static 'sample_js/js/fullcalendar.min.js' %}"></script>
+  <script src="{% static 'sample_js/locale/ja.js' %}"></script>
+
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.19/jquery-ui.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.19/i18n/jquery-ui-i18n.js"></script>
+  <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.19/themes/redmond/jquery-ui.css">
+<script>
+
+var local_events = '{% url "api" %}';
+
+$(function() {
+    $("#dialog-form").dialog({  // 表示するフォームは 'dialog-form' という ID で《定義》します。
+        autoOpen: false,  // ダイアログをデフォルトで出力しない
+        height: 480,  // 高さ設定
+        width: 830,  // 横幅を設定
+        modal: true,  // モーダル表示の有無
+        buttons: {  // ダイアログに表示するボタンと処理
+            "保存": function() {  // 関数を定義
+                console.log("button clicked");
+                var subject = $("#subject").val();
+                var end_flg = $("#end_flg").prop("checked");
+                var start_date = $("#start_date").val();
+                var end_date = $("#end_date").val();
+                var contents = $("#contents").val();
+                $.ajax({
+                    type: "get",
+                    url: "ajax/api/",
+                    data : {
+                      'subject': subject,
+                      'end_flg': end_flg,
+                      'start_date': start_date,
+                      'end_date': end_date,
+                      'contents': contents,
+                    },
+                    'dataType':'json',
+
+                    success : function(json) {
+                        var local_events = json['data']
+                        console.log(local_events)
+                        console.log("requested access complete");
+                    }
+                })
+                $(this).dialog("close");
+            },
+            "閉じる": function() {
+                $(this).dialog("close"); // ダイアログを閉じる
+            }
+        },
+        //  ↓ オブジェクト初期化子( key: value)
+        open: function(event, ui) {  // ダイアログのイベント処理
+            displayMessage("ダイアログを開きました。");
+        },
+        close: function() {
+            displayMessage("ダイアログを閉じました。");
+        }
+    });
+
+    // 「開く」ボタンがクリックされたらダイアログを表示
+    $("#open").click(function() {
+        $("#dialog-form").dialog("open");
+        return false; // 画面遷移を防ぐ
+    });
+});
+
+// エラー表示
+function displayError(str) {
+    var msg = $(".messageBar");
+    msg
+        .text(str)  //
+        .addClass("ui-state-error");
+    setTimeout(function() {
+        msg.removeClass("ui-state-error");  // 3秒後にクラス(class)を削除する
+    }, 3000);
+}
+
+// メッセージ表示 (関数 -> displayMessage)
+function displayMessage(str) {
+    var msg = $(".messageBar");
+    msg
+        .text(str)  // 表示文字を変更
+        .addClass("ui-state-highlight");  // クラスの追加(class)
+    setTimeout(function() {  // 時間差で処理を実行させる
+        msg.removeClass("ui-state-highlight");  // 3秒後にクラス(class)を削除する
+    }, 3000);
+}
+
+
+</script>
+
+<style>
+table.sample {
+    border: 1px solid #FDFEFE;
+    border-collapse:collapse;
+    border-spacing:0;
+    empty-cells:show;
+    }
+
+.sample td {
+    border-top: solid 1px #8DB9DB;
+    border-left: solid 1px #8DB9DB;
+    border-right: solid 1px #8DB9DB;
+    border-bottom: solid 1px #8DB9DB;
+    padding: 0.3em 1em;
+    white-space: nowrap;
+    text-align: left;
+    }
+
+.sample td.header{
+    background-color: #E1EFFB;
+    color: #2E6E9E;
+    font-weight: bold;
+    }
+
+button.open{
+    color: #2E6E9E;
+    display: table;
+    width: 200px;
+    height: 50px;
+    margin:0 auto;
+}
+
+body {
+  margin: 40px 10px;
+  padding: 0;
+  font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+  font-size: 14px;
+}
+
+#calendar {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+</style>
+
+</head>
+<body>
+<div>
+  <button id="open" class="open" style="" type="submit">日程を追加する</button>
+</div>
+
+
+
+<div id='calendar'></div>
+
+<!-- #dialog-form  -->
+<div id="dialog-form" title="日付追加">
+  <form>
+    <table id="form1" class="sample">
+      <tr>
+        <td class="header">件名</td>
+        <td><input type="text" id="subject" name="subject" value="" size="50" maxlength="10"></td>
+      </tr>
+      <tr>
+        <td class="header">終日フラグ</td>
+        <td><input type="checkbox" id="end_flg" name="end_flg"></td>
+      </tr>
+      <tr>
+        <td class="header">開始日</td>
+        <td><input type="text" id="start_date" name="start_date" value="未設定" size="30" maxlength="50" /></td>
+      </tr>
+      <tr>
+        <td class="header">終了日</td>
+        <td><input type="text" id="end_date" name="end_date" value="未設定" size="30" maxlength="50"></td>
+      </tr>
+      <tr>
+        <td class="header">内容</td>
+        <td><textarea id="contents" name="contents" rows="8" cols="49" value=""></textarea></td>
+      </tr>
+    </table>
+  </form>
+</div>
+<!-- end of #dialog-form -->
+
+<!-- 使用中 -->
+<script src="{% static 'sample_js/js/fullcalendar_sample.js' %}"></script>
+
+<!-- 未使用 -->
+<link href="{% static 'sample_js/css/fullcalendar_main.css' %}" rel='stylesheet' />
+
+</body>
+</html>
